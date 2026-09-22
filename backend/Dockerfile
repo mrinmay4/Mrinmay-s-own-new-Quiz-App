@@ -28,4 +28,4 @@ HEALTHCHECK --interval=30s \
             --retries=3 \
   CMD wget -qO- http://localhost:5000/health || exit 1
 
-CMD ["node", "src/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && exec node src/index.js"]
