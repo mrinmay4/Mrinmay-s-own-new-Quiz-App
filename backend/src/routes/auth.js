@@ -24,9 +24,9 @@ const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes - matches JWT expiry
 // Shared cookie options so login/signup/logout all stay in sync
 function getCookieOptions() {
   return {
-    httpOnly: true, // not readable by frontend JS - mitigates XSS token theft
-    secure: process.env.NODE_ENV === "production", // HTTPS only in prod
-    sameSite: "lax",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: COOKIE_MAX_AGE,
   };
 }
