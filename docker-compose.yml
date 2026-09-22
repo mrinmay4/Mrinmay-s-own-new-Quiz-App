@@ -1,0 +1,51 @@
+# Runs the backend and PostgreSQL for local development.
+# Frontend runs separately from frontend/ with `npm run dev`.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: quizapp-postgres
+
+    environment:
+      POSTGRES_USER: quizapp
+      POSTGRES_PASSWORD: quizapp
+      POSTGRES_DB: quizapp
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - quizapp_pgdata:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quizapp -d quizapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: quizapp-backend
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      # Inside Docker, `postgres` is the database hostname.
+      DATABASE_URL: postgresql://quizapp:quizapp@postgres:5432/quizapp
+
+    ports:
+      - "5000:5000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    command: >
+      sh -c "
+      npx prisma db push --skip-generate &&
+      node src/index.js
+      "
+
+volumes:
+  quizapp_pgdata:

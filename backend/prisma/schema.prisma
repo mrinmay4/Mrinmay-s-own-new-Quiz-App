@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String
+  password  String
+  createdAt DateTime @default(now())
+
+  quizzes      Quiz[]
+  participants Participant[]
+}
+
+model Quiz {
+  id         String   @id @default(uuid())
+  topic      String
+  difficulty String
+  timeLimit  Int
+  createdAt  DateTime @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id])
+
+  questions Question[]
+  rooms     Room[]
+}
+
+model Question {
+  id            String @id @default(uuid())
+  quizId        String
+  question      String
+  options       Json
+  correctAnswer Int
+  explanation   String
+
+  quiz    Quiz     @relation(fields: [quizId], references: [id])
+  answers Answer[]
+
+  @@index([quizId])
+}
+
+model Room {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  quizId     String
+  hostId     String
+  status     String   @default("waiting")
+  maxPlayers Int
+  createdAt  DateTime @default(now())
+
+  quiz         Quiz          @relation(fields: [quizId], references: [id])
+  participants Participant[]
+}
+
+model Participant {
+  id        String   @id @default(uuid())
+  userId    String
+  roomId    String
+  score     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  room Room @relation(fields: [roomId], references: [id])
+
+  answers Answer[]
+
+  @@unique([userId, roomId])
+  @@index([roomId])
+}
+
+// One row per (participant, question) answer submission.
+// The @@unique constraint below is what actually stops a participant from
+// answering the same question twice - it is enforced by Postgres itself,
+// not just application logic, so it holds even under concurrent requests.
+model Answer {
+  id             String   @id @default(uuid())
+  participantId  String
+  questionId     String
+  selectedAnswer Int
+  isCorrect      Boolean
+  points         Int
+  answeredAt     DateTime @default(now())
+
+  participant Participant @relation(fields: [participantId], references: [id])
+  question    Question    @relation(fields: [questionId], references: [id])
+
+  @@unique([participantId, questionId])
+  @@index([questionId])
+}
